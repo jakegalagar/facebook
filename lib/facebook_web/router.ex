@@ -57,7 +57,10 @@ defmodule FacebookWeb.Router do
     end
 
     post "/users/update-password", UserSessionController, :update_password
+
     live "/posts", PostLive.Index, :index
+    live "/posts/:id", PostLive.Show, :show
+    live "/posts/:id/show/edit", PostLive.Show, :edit
   end
 
   scope "/", FacebookWeb do
