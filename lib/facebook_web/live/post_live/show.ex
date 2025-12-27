@@ -3,8 +3,9 @@ defmodule FacebookWeb.PostLive.Show do
 
   alias Facebook.Posts
 
+  @impl true
   def mount(%{"id" => id}, _session, socket) do
-    post = Posts.list_post_by_id(id)
+    post = Posts.get_post!(id)
 
     patch = ~p"/posts/#{id}"
 
@@ -12,10 +13,12 @@ defmodule FacebookWeb.PostLive.Show do
       socket
       |> assign(:post, post)
       |> assign(:patch, patch)
+      |> assign(:query, "")
 
     {:ok, socket}
   end
 
+  @impl true
   def handle_params(params, _uri, socket) do
     socket =
       socket
@@ -33,6 +36,7 @@ defmodule FacebookWeb.PostLive.Show do
     |> assign(:page_title, "Edit Post")
   end
 
+  @impl true
   def render(assigns) do
     ~H"""
     <div class="max-w-3xl mx-auto mt-8 p-6 bg-white shadow-md rounded-lg">
@@ -71,8 +75,8 @@ defmodule FacebookWeb.PostLive.Show do
     <%= if @live_action == :edit do %>
       <.modal id="edit-post-modal" show on_cancel={JS.patch(@patch)}>
         <.live_component
-          module={FacebookWeb.PostLive.FormComponent}
           id={@post.id}
+          module={FacebookWeb.PostLive.FormComponent}
           post={@post}
           patch={@patch}
           page_title={@page_title}

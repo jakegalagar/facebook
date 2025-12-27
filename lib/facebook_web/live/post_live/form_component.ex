@@ -21,6 +21,8 @@ defmodule FacebookWeb.PostLive.FormComponent do
   def render(assigns) do
     ~H"""
     <div>
+      <.header>{@page_title}</.header>
+
       <.simple_form for={@form} phx-target={@myself} phx-submit="save-post">
         <.input type="text" field={@form[:body]} label="Body" />
         <.button>Save Edit</.button>
@@ -29,7 +31,7 @@ defmodule FacebookWeb.PostLive.FormComponent do
     """
   end
 
- @impl true
+  @impl true
   def handle_event("save-post", %{"post" => post_params}, socket) do
     IO.inspect(post_params)
 

@@ -15,6 +15,7 @@ defmodule FacebookWeb.PostLive.Index do
       socket
       |> assign(:posts, posts)
       |> assign(:patch, patch)
+      |> assign(:show_modal, false)
       |> assign(:form_data, %{body: ""})
 
     {:ok, socket}
@@ -31,20 +32,43 @@ defmodule FacebookWeb.PostLive.Index do
 
   defp apply_action(socket, :index, _params) do
     socket
+    |> assign(:post, nil)
   end
 
   defp apply_action(socket, :new, _params) do
     socket
-    |> assign(:tweet, %Post{})
+    |> assign(:page_title, "New Post")
+    |> assign(:post, %Post{})
   end
 
   @impl true
   def render(assigns) do
     ~H"""
     <h1>Listing Posts</h1>
+
+    <div class="flex justify-end mb-4">
+      <.link navigate={~p"/posts/new"}>
+        <.button>New</.button>
+      </.link>
+    </div>
+
+    <%= if @live_action == :new do %>
+      <.modal id="new-post-modal" show on_cancel={JS.patch(@patch)}>
+        <.live_component
+          id={:new}
+          module={FacebookWeb.PostLive.FormComponent}
+          post={@post}
+          patch={@patch}
+          page_title={@page_title}
+          live_action={@live_action}
+        />
+      </.modal>
+    <% end %>
+
     <.table id="post" rows={@posts}>
       <:col :let={post} label="ID">{post.id}</:col>
       <:col :let={post} label="Body">{post.body}</:col>
+
       <:action :let={post}>
         <.link
           navigate={~p"/posts/#{post}"}
@@ -73,28 +97,31 @@ defmodule FacebookWeb.PostLive.Index do
         <.button
           class="hover:text-primary"
           phx-click="delete-post"
-          phx-value-di={post.id}
+          phx-value-id={post.id}
         >
           delete
         </.button>
       </:action>
     </.table>
 
-    <%= if @live_action == :new do %>
-      <.modal id="new-post-modal" show on_cancel={JS.patch(@patch)}>
-        <.live_component
-          id={:new}
-          module={FacebookWeb.PostLive.FormComponent}
-          post={@post}
-          live_action={@live_action}
-        />
+    <%= if @show_modal do %>
+      <.modal id="add_post_modal" show>
+        <h2 class="text-xl font-bold">Add New Post</h2>
+        <form phx-submit="save-new">
+          <input
+            type="text"
+            name="Body"
+            class="border p-2 w-full rounded"
+            value={@form_data.body}
+          />
+        </form>
       </.modal>
     <% end %>
     """
   end
 
+  @impl true
   def handle_event("delete-post", %{"id" => id}, socket) do
-    socket.assigns.post
     Posts.delete_post(id)
 
     socket =
@@ -135,6 +162,47 @@ defmodule FacebookWeb.PostLive.Index do
       socket
       |> put_flash(:info, "Post was downcase successfully")
       |> push_navigate(to: ~p"/posts")
+
+    {:noreply, socket}
+  end
+
+  def handle_event("open-modal", _params, socket) do
+    socket.assigns.posts
+
+    socket =
+      socket
+      |> assign(:show_modal, true)
+      |> assign(:form_data, %{body: ""})
+
+    {:noreply, socket}
+  end
+
+  def handle_event("close-modal", _params, socket) do
+    socket.assigns.posts
+
+    socket =
+      socket
+      |> assign(:show_modal, false)
+
+    {:noreply, socket}
+  end
+
+  def handle_event("save-new", params, socket) do
+    posts = socket.assigns.posts
+
+    new_id = Integer.to_string(length(posts) + 1)
+
+    new_post = %Facebook.Posts.Post{
+      id: new_id,
+      body: params["body"]
+    }
+
+    update = posts ++ [new_post]
+
+    socket =
+      socket
+      |> assign(:posts, update)
+      |> assign(:show_modal, false)
 
     {:noreply, socket}
   end
