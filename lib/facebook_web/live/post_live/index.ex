@@ -65,6 +65,20 @@ defmodule FacebookWeb.PostLive.Index do
       </.modal>
     <% end %>
 
+    <%= if @show_modal do %>
+      <.modal id="add_post_modal" show>
+        <h2 class="text-xl font-bold">Add New Post</h2>
+        <form phx-submit="save-new">
+          <input
+            type="text"
+            name="Body"
+            class="border p-2 w-full rounded"
+            value={@form_data.body}
+          />
+        </form>
+      </.modal>
+    <% end %>
+
     <.table id="post" rows={@posts}>
       <:col :let={post} label="ID">{post.id}</:col>
       <:col :let={post} label="Body">{post.body}</:col>
@@ -104,19 +118,12 @@ defmodule FacebookWeb.PostLive.Index do
       </:action>
     </.table>
 
-    <%= if @show_modal do %>
-      <.modal id="add_post_modal" show>
-        <h2 class="text-xl font-bold">Add New Post</h2>
-        <form phx-submit="save-new">
-          <input
-            type="text"
-            name="Body"
-            class="border p-2 w-full rounded"
-            value={@form_data.body}
-          />
-        </form>
-      </.modal>
-    <% end %>
+    <.link
+      phx-click="upcase-all"
+      class="hover:text-primary"
+    >
+      Upcase All
+    </.link>
     """
   end
 
@@ -162,6 +169,21 @@ defmodule FacebookWeb.PostLive.Index do
       socket
       |> put_flash(:info, "Post was downcase successfully")
       |> push_navigate(to: ~p"/posts")
+
+    {:noreply, socket}
+  end
+
+  def handle_event("upcase-all", _params, socket) do
+    posts = socket.assigns.posts
+
+    upcase_posts =
+      Enum.map(posts, fn post ->
+        %{post | body: String.upcase(post.body)}
+      end)
+
+    socket =
+      socket
+      |> assign(:posts, upcase_posts)
 
     {:noreply, socket}
   end

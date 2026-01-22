@@ -33,27 +33,40 @@ defmodule FacebookWeb.PostLive.FormComponent do
 
   @impl true
   def handle_event("save-post", %{"post" => post_params}, socket) do
-    IO.inspect(post_params)
-
-    if socket.assigns.live_action == :new do
-      Posts.create_post(post_params)
-    else
-      post = socket.assigns.post
-      Posts.update_post(post, post_params)
-    end
-
-    message =
-      if socket.assigns.live_action == :new do
-        "Post was Created successfully."
-      else
-        "Post was Update successfully."
-      end
-
-    socket =
-      socket
-      |> put_flash(:info, message)
-      |> push_navigate(to: ~p"/posts")
+    socket = save_post(socket, socket.assigns.live_action, post_params)
 
     {:noreply, socket}
+  end
+
+  defp save_post(socket, :new, post_params) do
+    case Posts.create_post(post_params) do
+      {:ok, _changes} ->
+        socket
+        |> put_flash(:info, "Post was created successfully.")
+        |> push_navigate(to: socket.assigns.patch)
+
+      {:error, _failed_op, changeset, _changes} ->
+        form = to_form(changeset)
+
+        socket
+        |> assign(:form, form)
+    end
+  end
+
+  defp save_post(socket, :edit, post_params) do
+    post = socket.assigns.post
+
+    case Posts.update_post(post, post_params) do
+      {:ok, _changes} ->
+        socket
+        |> put_flash(:info, "Post was Update successfully.")
+        |> push_navigate(to: socket.assigns.patch)
+
+      {:error, _failed_op, changeset, _changes} ->
+        form = to_form(changeset)
+
+        socket
+        |> assign(:form, form)
+    end
   end
 end
